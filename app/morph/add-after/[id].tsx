@@ -7,21 +7,22 @@ import {
   SafeAreaView,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useMorphs } from '../../../src/contexts/MorphContext';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius } from '../../../src/constants/theme';
 import { PhotoSource } from '../../../src/types/morph';
+
+const isWeb = Platform.OS === 'web';
 
 export default function AddAfterPhotoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const router = useRouter();
   const { getMorph, addAfterPhoto } = useMorphs();
-  const [permission, requestPermission] = useCameraPermissions();
 
   const [showCamera, setShowCamera] = useState(false);
   const [cameraRef, setCameraRef] = useState<any>(null);
@@ -41,12 +42,17 @@ export default function AddAfterPhotoScreen() {
   }
 
   const handleCamera = async () => {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Alert.alert('Permission needed', 'Camera access is required');
-        return;
+    if (isWeb) {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setPhotoUri(result.assets[0].uri);
+        setPhotoSource('camera');
       }
+      return;
     }
     setShowCamera(true);
   };
@@ -81,7 +87,8 @@ export default function AddAfterPhotoScreen() {
     }
   };
 
-  if (showCamera) {
+  if (showCamera && !isWeb) {
+    const { CameraView } = require('expo-camera');
     return (
       <View style={styles.cameraContainer}>
         <CameraView

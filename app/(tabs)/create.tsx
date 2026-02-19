@@ -14,8 +14,6 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMorphs } from '../../src/contexts/MorphContext';
 import { Colors, FontFamily, FontSize, Spacing, BorderRadius, AccentColors } from '../../src/constants/theme';
 import { CATEGORIES, MorphCategory } from '../../src/constants/categories';
@@ -43,7 +41,9 @@ export default function CreateScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraRef, setCameraRef] = useState<any>(null);
-  const [permission, requestPermission] = useCameraPermissions();
+
+  // Lazy-load native-only modules
+  const isWeb = Platform.OS === 'web';
 
   const canGoNext = () => {
     if (step === 1) return draft.title.trim().length > 0;
@@ -65,14 +65,24 @@ export default function CreateScreen() {
   };
 
   const handleCamera = async () => {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Alert.alert('Permission needed', 'Camera access is required to take photos');
-        return;
+    if (isWeb) {
+      // On web, use image picker with camera option
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setDraft({ ...draft, before_uri: result.assets[0].uri, before_taken_with: 'camera' as PhotoSource });
       }
+      return;
     }
-    setShowCamera(true);
+    try {
+      const { CameraView: CV, useCameraPermissions: uCP } = require('expo-camera');
+      setShowCamera(true);
+    } catch {
+      Alert.alert('Camera not available');
+    }
   };
 
   const handleTakePhoto = async () => {
@@ -136,7 +146,8 @@ export default function CreateScreen() {
     router.push('/(tabs)');
   };
 
-  if (showCamera) {
+  if (showCamera && !isWeb) {
+    const { CameraView } = require('expo-camera');
     return (
       <View style={styles.cameraContainer}>
         <CameraView
@@ -229,27 +240,47 @@ export default function CreateScreen() {
             {!draft.is_ongoing && (
               <View>
                 <Text style={styles.inputLabel}>{t('create.goalDate')}</Text>
-                <TouchableOpacity
-                  style={styles.dateButton}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Text style={styles.dateButtonText}>
-                    {draft.goal_date
-                      ? draft.goal_date.toLocaleDateString()
-                      : t('create.noGoalDate')}
-                  </Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={draft.goal_date || new Date()}
-                    mode="date"
-                    minimumDate={new Date()}
-                    onChange={(_, date) => {
-                      setShowDatePicker(Platform.OS === 'ios');
-                      if (date) setDraft({ ...draft, goal_date: date });
+                {isWeb ? (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={Colors.textMuted}
+                    value={draft.goal_date ? draft.goal_date.toISOString().split('T')[0] : ''}
+                    onChangeText={(text) => {
+                      const date = new Date(text);
+                      if (!isNaN(date.getTime())) {
+                        setDraft({ ...draft, goal_date: date });
+                      }
                     }}
-                    themeVariant="dark"
                   />
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={styles.dateButtonText}>
+                        {draft.goal_date
+                          ? draft.goal_date.toLocaleDateString()
+                          : t('create.noGoalDate')}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (() => {
+                      const DateTimePicker = require('@react-native-community/datetimepicker').default;
+                      return (
+                        <DateTimePicker
+                          value={draft.goal_date || new Date()}
+                          mode="date"
+                          minimumDate={new Date()}
+                          onChange={(_: any, date: Date | undefined) => {
+                            setShowDatePicker(Platform.OS === 'ios');
+                            if (date) setDraft({ ...draft, goal_date: date });
+                          }}
+                          themeVariant="dark"
+                        />
+                      );
+                    })()}
+                  </>
                 )}
               </View>
             )}
