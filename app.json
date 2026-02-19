@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "MORPH",
+    "slug": "morph",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "morph",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0B0B"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.morph.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "MORPH needs camera access to take before/after photos",
+        "NSPhotoLibraryUsageDescription": "MORPH needs photo library access to select photos"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0B0B"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.morph.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "MORPH needs camera access to take before/after photos"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MORPH needs photo library access to select photos"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#E8634A"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "MORPH needs photo library access to save exported images",
+          "savePhotosPermission": "MORPH needs permission to save images to your gallery"
+        }
+      ]
+    ]
+  }
+}
